@@ -1,0 +1,38 @@
+
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: cleanup
+spec:
+  workspaces:
+    - name: source
+  steps:
+    - name: cleanup-files
+      image: alpine:3.20
+      workingDir: $(workspaces.source.path)/oc-pipelines-cicd
+      script: |
+        #!/bin/sh
+        set -eu
+        echo "Starting cleanup..."
+        find . -type d -name "__pycache__" -prune -exec rm -rf {} +
+        rm -rf .pytest_cache .coverage build dist
+        echo "Cleanup completed successfully."
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: nose
+spec:
+  workspaces:
+    - name: source
+  steps:
+    - name: run-nose-tests
+      image: python:3.9-slim
+      workingDir: $(workspaces.source.path)/oc-pipelines-cicd
+      script: |
+        #!/bin/sh
+        set -eu
+        echo "Installing dependencies..."
+        python -m pip install --no-cache-dir -r requirements.txt
+        echo "Running unit tests with nose..."
+        nosetests -v
